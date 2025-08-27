@@ -54,23 +54,23 @@ export default function Sidebar(){
                                 {getRole == "Administrator" &&
                                     <>
                                         <li>
-                                            <Link to="uploadleads" class="nav-link px-0 align-middle text-dark">
-                                                <i class="bi bi-cloud-arrow-up"></i> <span class="ms-1 d-none d-sm-inline">Upload Leads</span></Link>
+                                            <Link to="stats" class="nav-link px-0 align-middle text-dark">
+                                                <i class="bi bi-cloud-arrow-up"></i> <span class="ms-1 d-none d-sm-inline">Stats</span></Link>
                                         </li>
 
                                         <li>
-                                            <Link to="allleads" class="nav-link px-0 align-middle text-dark">
-                                                <i class="bi bi-clipboard-data"></i> <span class="ms-1 d-none d-sm-inline">All Data</span></Link>
+                                            <Link to="certificates" class="nav-link px-0 align-middle text-dark">
+                                                <i class="bi bi-clipboard-data"></i> <span class="ms-1 d-none d-sm-inline">Certificates</span></Link>
                                         </li>
                                     
                                         <li>
-                                            <Link to="/users" class="nav-link px-0 align-middle text-dark">
-                                                <i class="fs-4 bi-people"></i> <span class="ms-1 d-none d-sm-inline">Users</span> </Link>
+                                            <Link to="sports" class="nav-link px-0 align-middle text-dark">
+                                                <i class="bi bi-clipboard-data"></i> <span class="ms-1 d-none d-sm-inline">Sports</span></Link>
                                         </li>
 
                                         <li>
-                                            <Link to="/emails" class="nav-link px-0 align-middle text-dark">
-                                                <i class="fs-4 bi-envelope"></i> <span class="ms-1 d-none d-sm-inline">Emails</span> </Link>
+                                            <Link to="/users" class="nav-link px-0 align-middle text-dark">
+                                                <i class="fs-4 bi-people"></i> <span class="ms-1 d-none d-sm-inline">Users</span> </Link>
                                         </li>
                                     </>
                                 }    
