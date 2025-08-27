@@ -95,6 +95,16 @@ app.get("/getusers", authenticateApiKey, async (req, res) => {
   }
 });
 
+app.get("/getactiveusers", authenticateApiKey, (req, res) => {
+  if (realTimeUsers !== null && Date.now() < expiryTime) {
+    res.json({ number: realTimeUsers });
+  } else {
+    realTimeUsers = 0; // Reset value after expiry
+    expiryTime = null;
+    res.json({ message: "Value expired" });
+  }
+});
+
 // ✅ Login
 app.post("/login", authenticateApiKey, async (req, res) => {
   const { Username, Password } = req.body;
