@@ -31,40 +31,6 @@ export default function AdminDashboard(){
         .then(
             res => {
                 setUser(res.data);
-            }
-        )
-        .catch(
-            error => {
-                console.log(error);
-            }
-        )
-
-        axios.get(GET_COUNTRIES, {
-            headers: {
-                "Authorization": apiKey,
-                "Content-Type": "application/json"
-            }
-        })
-        .then(
-            res => {
-                setCountry(res.data);
-            }
-        )
-        .catch(
-            error => {
-                console.log(error);
-            }
-        )
-
-        axios.get(GET_DATA, {
-            headers: {
-                "Authorization": apiKey,
-                "Content-Type": "application/json"
-            }
-        })
-        .then(
-            res => {
-                setData(res.data);
                 setLoading(false);
             }
         )
@@ -73,6 +39,41 @@ export default function AdminDashboard(){
                 console.log(error);
             }
         )
+
+        // axios.get(GET_COUNTRIES, {
+        //     headers: {
+        //         "Authorization": apiKey,
+        //         "Content-Type": "application/json"
+        //     }
+        // })
+        // .then(
+        //     res => {
+        //         setCountry(res.data);
+        //     }
+        // )
+        // .catch(
+        //     error => {
+        //         console.log(error);
+        //     }
+        // )
+
+        // axios.get(GET_DATA, {
+        //     headers: {
+        //         "Authorization": apiKey,
+        //         "Content-Type": "application/json"
+        //     }
+        // })
+        // .then(
+        //     res => {
+        //         setData(res.data);
+        //         setLoading(false);
+        //     }
+        // )
+        // .catch(
+        //     error => {
+        //         console.log(error);
+        //     }
+        // )
 
         axios.get(REALTIME_USERS, {
             headers: {
@@ -110,7 +111,7 @@ export default function AdminDashboard(){
                     </div>
                 </div>
                 }
-                {getRole == "Administrator" && 
+                {/* {getRole == "Administrator" && 
                 <div class="card" style={{width: "20rem", margin: "10px"}}>
                     <div class="card-body">
                         <h5 class="card-title">Total Countries</h5>
@@ -127,7 +128,7 @@ export default function AdminDashboard(){
                         <Link to="allleads" class="card-link">Manage Leads</Link>
                         }
                     </div>
-                </div>
+                </div> */}
             </div>
             {getRole == "Administrator" && 
                 <h3>Realtime Users: {activeUsers}</h3>
