@@ -40,7 +40,7 @@ export default function Login() {
           Cookies.set("username", username, { expires: date });
           Cookies.set("user_role", userRole, { expires: date });
 
-          navigate(0);
+          navigate('/');
         } else {
           toast.error("Invalid username!");
         }
