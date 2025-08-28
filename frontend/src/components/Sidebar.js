@@ -98,7 +98,7 @@ export default function Sidebar(){
             </div>    
             ):
             (
-                <Login />
+                <App />
             )
             }
         </div>
