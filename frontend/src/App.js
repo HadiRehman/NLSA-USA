@@ -1,5 +1,5 @@
 import React from "react";
-import {BrowserRouter, Routes, Route} from 'react-router-dom';
+import {BrowserRouter, Routes, Route, useNavigate} from 'react-router-dom';
 import AdminDashboard from "./pages/AdminDashboard";
 import Cookies from "js-cookie";
 import Login from "./pages/Login";
@@ -11,6 +11,7 @@ import DeleteUser from "./pages/DeleteUser";
 function App() {
   const getUsername = Cookies.get("username");
   const getRole = Cookies.get("user_role");
+  const navigate = useNavigate();
 
   return (
     <div>
@@ -27,7 +28,10 @@ function App() {
           }
         </Routes>
       ):(
-        <Login />
+        <Routes>
+          <Route path="/" element={<AdminDashboard />}></Route>
+          <Route path="/admin" element={<Login />}></Route>
+        </Routes>
       )
       }
     </div>
