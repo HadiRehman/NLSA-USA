@@ -88,14 +88,14 @@ export default function ShowUsers(){
                         : "N/A";
 
                         return (
-                        <tr key={user.id}>
+                        <tr key={user.Id}>
                             <td>{user.Name}</td>
                             <td>{user.Role}</td>
                             <td>{user.Email}</td>
                             <td>{createdAt}</td>
                             <td>
                             {getUsername !== user.Name && (
-                                <Link to={`/deleteuser/${user.id}`}>
+                                <Link to={`/deleteuser/${user.Id}`}>
                                 <i className="bi bi-trash3 text-danger"></i>
                                 </Link>
                             )}
