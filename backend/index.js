@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 import admin from "firebase-admin";
 import bcrypt from "bcryptjs";
 import { readFileSync } from "fs";
+import multer from "multer";
+import { getStorage } from "firebase-admin/storage";
 
 dotenv.config();
 const app = express();
@@ -221,6 +223,230 @@ app.delete("/deleteuser/:Id", authenticateApiKey, async (req, res) => {
   try {
     await db.collection("users").doc(Id).delete();
     return res.status(200).json({ message: "User Deleted Successfully." });
+  } catch (error) {
+    console.error("🔥 Delete error:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// stats api
+// ✅ Add or Update Player
+app.post("/addplayer", authenticateApiKey, async (req, res) => {
+  const {
+    Id, // optional for update
+    SportCategory,
+    PlayerName,
+    EventName,
+    DateOfBirth,
+    CityLocation,
+    Email,
+    JerseyNumber,
+    // optional stats
+    AtBats,
+    Hits,
+    Runs,
+    RBI,
+    HR,
+    SB,
+    BB,
+    K,
+    AVG,
+    Errors,
+    Assists,
+    Putouts,
+    PitchingInnings,
+    PitchingStrikeouts,
+    ERA,
+  } = req.body;
+
+  // ✅ Validation for create
+  if (
+    !Id &&
+    (!SportCategory ||
+      !PlayerName ||
+      !EventName ||
+      !DateOfBirth ||
+      !CityLocation ||
+      !Email ||
+      !JerseyNumber)
+  ) {
+    return res
+      .status(400)
+      .json({ message: "All player info fields are required for new player!" });
+  }
+
+  try {
+    // ✅ Case 1: Update existing player
+    if (Id) {
+      const playerRef = db.collection("players").doc(Id);
+      const playerDoc = await playerRef.get();
+
+      if (!playerDoc.exists) {
+        return res.status(404).json({ message: "Player not found" });
+      }
+
+      const updates = {};
+      if (SportCategory) updates.SportCategory = SportCategory;
+      if (PlayerName) updates.PlayerName = PlayerName;
+      if (EventName) updates.EventName = EventName;
+      if (DateOfBirth) updates.DateOfBirth = DateOfBirth;
+      if (CityLocation) updates.CityLocation = CityLocation;
+      if (Email) updates.Email = Email;
+      if (JerseyNumber) updates.JerseyNumber = JerseyNumber;
+
+      // ✅ merge stats
+      const statsUpdates = {};
+      if (AtBats !== undefined) statsUpdates.AtBats = AtBats;
+      if (Hits !== undefined) statsUpdates.Hits = Hits;
+      if (Runs !== undefined) statsUpdates.Runs = Runs;
+      if (RBI !== undefined) statsUpdates.RBI = RBI;
+      if (HR !== undefined) statsUpdates.HR = HR;
+      if (SB !== undefined) statsUpdates.SB = SB;
+      if (BB !== undefined) statsUpdates.BB = BB;
+      if (K !== undefined) statsUpdates.K = K;
+      if (AVG !== undefined) statsUpdates.AVG = AVG;
+      if (Errors !== undefined) statsUpdates.Errors = Errors;
+      if (Assists !== undefined) statsUpdates.Assists = Assists;
+      if (Putouts !== undefined) statsUpdates.Putouts = Putouts;
+      if (PitchingInnings !== undefined) statsUpdates.PitchingInnings = PitchingInnings;
+      if (PitchingStrikeouts !== undefined) statsUpdates.PitchingStrikeouts = PitchingStrikeouts;
+      if (ERA !== undefined) statsUpdates.ERA = ERA;
+
+      if (Object.keys(statsUpdates).length > 0) {
+        updates["stats"] = statsUpdates;
+      }
+
+      await playerRef.set(updates, { merge: true });
+
+      return res.status(200).json({ message: "Player updated successfully" });
+    }
+
+    // ✅ Case 2: Create new player
+    const newPlayer = {
+      SportCategory,
+      PlayerName,
+      EventName,
+      DateOfBirth,
+      CityLocation,
+      Email,
+      JerseyNumber,
+      stats: {
+        AtBats: AtBats || null,
+        Hits: Hits || null,
+        Runs: Runs || null,
+        RBI: RBI || null,
+        HR: HR || null,
+        SB: SB || null,
+        BB: BB || null,
+        K: K || null,
+        AVG: AVG || null,
+        Errors: Errors || null,
+        Assists: Assists || null,
+        Putouts: Putouts || null,
+        PitchingInnings: PitchingInnings || null,
+        PitchingStrikeouts: PitchingStrikeouts || null,
+        ERA: ERA || null,
+      },
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    const playerRef = await db.collection("players").add(newPlayer);
+
+    return res
+      .status(200)
+      .json({ message: "Player added successfully", Id: playerRef.id });
+  } catch (error) {
+    console.error("🔥 Error adding/updating player:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// ✅ Fetch All Players
+app.get("/getplayers", authenticateApiKey, async (req, res) => {
+  try {
+    const snapshot = await db.collection("players").get();
+
+    if (snapshot.empty) {
+      return res.status(404).json({ message: "No players found" });
+    }
+
+    const players = snapshot.docs.map((doc) => ({
+      Id: doc.id,
+      ...doc.data(),
+    }));
+
+    res.json(players);
+  } catch (error) {
+    console.error("Error fetching players:", error);
+    res.status(500).json({ message: "Firebase error", error: error.message });
+  }
+});
+
+// ✅ Update Player (info or stats)
+app.put("/updateplayer", authenticateApiKey, async (req, res) => {
+  const { Id, ...updateFields } = req.body;
+
+  if (!Id) {
+    return res.status(400).json({ message: "Player Id required!" });
+  }
+
+  try {
+    const playerRef = db.collection("players").doc(Id);
+    const playerDoc = await playerRef.get();
+
+    if (!playerDoc.exists) {
+      return res.status(404).json({ message: "Player not found" });
+    }
+
+    // Separate stats updates
+    const { AtBats, Hits, Runs, RBI, HR, SB, BB, K, AVG, Errors, Assists, Putouts, PitchingInnings, PitchingStrikeouts, ERA, ...playerInfo } = updateFields;
+
+    const updates = {};
+    if (Object.keys(playerInfo).length > 0) {
+      Object.assign(updates, playerInfo);
+    }
+
+    // ✅ Update stats only if provided
+    const statsUpdates = {};
+    if (AtBats !== undefined) statsUpdates.AtBats = AtBats;
+    if (Hits !== undefined) statsUpdates.Hits = Hits;
+    if (Runs !== undefined) statsUpdates.Runs = Runs;
+    if (RBI !== undefined) statsUpdates.RBI = RBI;
+    if (HR !== undefined) statsUpdates.HR = HR;
+    if (SB !== undefined) statsUpdates.SB = SB;
+    if (BB !== undefined) statsUpdates.BB = BB;
+    if (K !== undefined) statsUpdates.K = K;
+    if (AVG !== undefined) statsUpdates.AVG = AVG;
+    if (Errors !== undefined) statsUpdates.Errors = Errors;
+    if (Assists !== undefined) statsUpdates.Assists = Assists;
+    if (Putouts !== undefined) statsUpdates.Putouts = Putouts;
+    if (PitchingInnings !== undefined) statsUpdates.PitchingInnings = PitchingInnings;
+    if (PitchingStrikeouts !== undefined) statsUpdates.PitchingStrikeouts = PitchingStrikeouts;
+    if (ERA !== undefined) statsUpdates.ERA = ERA;
+
+    if (Object.keys(statsUpdates).length > 0) {
+      updates["stats"] = { ...playerDoc.data().stats, ...statsUpdates };
+    }
+
+    await playerRef.update(updates);
+
+    return res.status(200).json({ message: "Player updated successfully" });
+  } catch (error) {
+    console.error("🔥 Update error:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// ✅ Delete Player
+app.delete("/deleteplayer/:Id", authenticateApiKey, async (req, res) => {
+  const { Id } = req.params;
+  if (!Id) {
+    return res.status(400).json({ message: "Player Id required!" });
+  }
+
+  try {
+    await db.collection("players").doc(Id).delete();
+    return res.status(200).json({ message: "Player deleted successfully" });
   } catch (error) {
     console.error("🔥 Delete error:", error);
     return res.status(500).json({ message: "Internal Server Error" });
