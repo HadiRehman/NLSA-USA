@@ -54,13 +54,13 @@ export default function Sidebar(){
                                 {getRole == "Administrator" &&
                                     <>
                                         <li>
-                                            <Link to="stats" class="nav-link px-0 align-middle text-dark">
-                                                <i class="bi bi-cloud-arrow-up"></i> <span class="ms-1 d-none d-sm-inline">Stats</span></Link>
+                                            <Link to="players" class="nav-link px-0 align-middle text-dark">
+                                                <i class="bi bi-person-lines-fill"></i> <span class="ms-1 d-none d-sm-inline">Players</span></Link>
                                         </li>
 
                                         <li>
                                             <Link to="certificates" class="nav-link px-0 align-middle text-dark">
-                                                <i class="bi bi-clipboard-data"></i> <span class="ms-1 d-none d-sm-inline">Certificates</span></Link>
+                                                <i class="bi bi-card-heading"></i> <span class="ms-1 d-none d-sm-inline">Certificates</span></Link>
                                         </li>
                                     
                                         <li>
