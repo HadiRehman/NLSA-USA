@@ -61,6 +61,8 @@ export default function ShowUsers(){
     if (loading) return <Loader />;
     return(
         <div className="container">
+            <h2>Add Users</h2>
+            <br />
             <div className="row">
                 <div className="col-sm-2">
                     <Link to="/adduser"><button className="btn btn-primary">Add New User</button></Link>
