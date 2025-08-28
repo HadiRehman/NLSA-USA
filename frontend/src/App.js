@@ -7,6 +7,9 @@ import UpdateProfile from "./pages/UpdateProfile";
 import ShowUsers from "./pages/ShowUsers";
 import AddUser from "./pages/AddUser";
 import DeleteUser from "./pages/DeleteUser";
+import ShowPlayers from "./pages/ShowPlayers";
+import ShowStats from "./pages/ShowStats";
+import DeletePlayer from "./pages/DeletePlayer";
 
 function App() {
   const getUsername = Cookies.get("username");
@@ -24,6 +27,9 @@ function App() {
               <Route path="/users" element={<ShowUsers />}></Route>
               <Route path="/adduser" element={<AddUser />}></Route>
               <Route path="/deleteuser/:id" element={<DeleteUser />}></Route>
+              <Route path="/players" element={<ShowPlayers />}></Route>
+              <Route path="/stats/:id" element={<ShowStats />}></Route>
+              <Route path="/deleteplayer/:id" element={<DeletePlayer />}></Route>
             </>
           }
         </Routes>
