@@ -3,8 +3,8 @@
 
 import React from "react";
 import logo from "../../images/logo.png"; 
-import "bootstrap-icons/font/bootstrap-icons.css"; 
-import "./Header.css"; 
+import { Link } from "react-router-dom";
+
 export default function Header() {
   return (
     <nav className="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
@@ -40,7 +40,7 @@ export default function Header() {
             <li className="nav-item">
               <a col 
                 className="nav-link"
-                href="https://facebook.com"
+                href="https://www.facebook.com/NLSAUSA/"
                 target="_blank"
                 rel="noreferrer"
               >
@@ -50,7 +50,7 @@ export default function Header() {
             <li className="nav-item">
               <a
                 className="nav-link"
-                href="https://https://x.com"
+                href="https://twitter.com/NationalLocalS1"
                 target="_blank"
                 rel="noreferrer"
               >
@@ -60,7 +60,7 @@ export default function Header() {
             <li className="nav-item">
               <a
                 className="nav-link"
-                href="https://instagram.com"
+                href="https://www.instagram.com/nlsausa/"
                 target="_blank"
                 rel="noreferrer"
               >
@@ -70,7 +70,7 @@ export default function Header() {
             <li className="nav-item">
               <a
                 className="nav-link"
-                href="https://linkedin.com"
+                href="https://www.linkedin.com/in/william-sims-3951b0198/"
                 target="_blank"
                 rel="noreferrer"
               >         
@@ -80,7 +80,7 @@ export default function Header() {
                <li className="nav-item">
               <a
                 className="nav-link"
-                href="https://www.youtube.com"
+                href="https://www.youtube.com/channel/UCFQDlMwWxp5ye818xX8kzIw"
                 target="_blank"
                 rel="noreferrer"
               >
@@ -92,9 +92,11 @@ export default function Header() {
             
           </ul>
           {/* Contact button */}
+          <Link to="https://nlsausa.com/contact/">
           <button className="btn btn-outline-primary" type="button">
             Contact
           </button>
+          </Link>
         </div>
       </div>
     </nav>
