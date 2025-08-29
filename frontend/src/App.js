@@ -10,6 +10,8 @@ import DeleteUser from "./pages/DeleteUser";
 import ShowPlayers from "./pages/ShowPlayers";
 import ShowStats from "./pages/ShowStats";
 import DeletePlayer from "./pages/DeletePlayer";
+import Home from "./pages/user/Home";
+import Thankyou from "./pages/user/Thankyou";
 
 function App() {
   const getUsername = Cookies.get("username");
@@ -35,7 +37,8 @@ function App() {
         </Routes>
       ):(
         <Routes>
-          <Route path="/" element={<AdminDashboard />}></Route>
+          <Route path="/" element={<Home />} />
+          <Route path="/thankyou" element={<Thankyou />} />    
           <Route path="/admin" element={<Login />}></Route>
         </Routes>
       )
