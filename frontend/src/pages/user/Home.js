@@ -58,10 +58,10 @@ axios
     },
   })
 .then((res) => {
-    // Agar API ne successfully data save kar liya (200 OK mila)
+   
     toast.success("Player registered successfully!");
     sessionStorage.setItem("formSubmitted", "true");
-    navigate("/thankyou");   // ✅ ab hamesha chalega jab tak error na ho
+    navigate("/thankyou");  
   })
 .catch((err) => {
     toast.error("Something went wrong!");

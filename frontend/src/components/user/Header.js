@@ -3,7 +3,7 @@
 
 import React from "react";
 import logo from "../../images/logo.png"; 
-import "bootstrap-icons/font/bootstrap-icons.css"; 
+
 import "./Header.css"; 
 export default function Header() {
   return (

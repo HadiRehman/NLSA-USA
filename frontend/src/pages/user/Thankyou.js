@@ -11,7 +11,7 @@ export default function Thankyou() {
   useEffect(() => {
     const submitted = sessionStorage.getItem("formSubmitted");
     if (!submitted) {
-      navigate("/Thankyou"); // direct URL access se block
+      navigate("/Thankyou"); 
     } else {
       sessionStorage.removeItem("formSubmitted");
     }
