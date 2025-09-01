@@ -58,11 +58,11 @@ axios
     },
   })
 .then((res) => {
-   
-    toast.success("Player registered successfully!");
-    sessionStorage.setItem("formSubmitted", "true");
-    navigate("/thankyou");  
-  })
+  toast.success("Player registered successfully!");
+  sessionStorage.setItem("formSubmitted", "true");
+  navigate("/Thankyou", { state: { fromForm: true } });
+})
+
 .catch((err) => {
     toast.error("Something went wrong!");
     console.error(err);
