@@ -1,5 +1,4 @@
-import "bootstrap/dist/css/bootstrap.min.css";
-import "bootstrap/dist/js/bootstrap.bundle.min";
+
 import Header from "../../components/user/Header";
 import images from "../../images/images.jpeg";
 import React, { useEffect, useState } from "react";
