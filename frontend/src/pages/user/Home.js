@@ -252,8 +252,7 @@ axios
       <div
         className="container-fluid"
         style={{
-          background: "linear-gradient(to right, #e0f2ff, #ffffff)",
-          padding: "50px 0", 
+          background: "linear-gradient(to right, #e0f2ff, #ffffff)"
         }}
       >
         <h3 style={{ marginBottom: "20px", fontWeight: "bold", textAlign:"center" }}>
@@ -279,8 +278,8 @@ axios
                 >
                   <option value="">Select Sport</option>
                   <option value="basketball">Basketball</option>
-                  <option value="football">Football</option>
-                  <option value="hockey">Hockey</option>
+                  {/* <option value="football">Football</option>
+                  <option value="hockey">Hockey</option> */}
                 </select>
               </div>
 
@@ -348,7 +347,7 @@ axios
                 maxWidth: "100%",
                 height: "680px",
                 boxShadow: "0px 4px 20px rgba(0,0,0,0.2)",
-                marginTop:"50px"
+                marginTop:"150px"
               }}
             />
           </div>

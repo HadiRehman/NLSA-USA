@@ -11,7 +11,7 @@ export default function Thankyou() {
   useEffect(() => {
     const submitted = sessionStorage.getItem("formSubmitted");
     if (!submitted) {
-      navigate("/Thankyou"); 
+      navigate("/Thankyou"); // direct URL access se block
     } else {
       sessionStorage.removeItem("formSubmitted");
     }
@@ -21,44 +21,33 @@ export default function Thankyou() {
     <div>
       <Header />
       <div
-        className="container-fluid"
+        className="container-fluid d-flex justify-content-center align-items-center"
         style={{
           background: "linear-gradient(to right, #e0f2ff, #ffffff)",
-          padding: "50px 0",
-          height: "568px",
+          height: "100vh", // full height for perfect center
         }}
       >
         <div
-          className="card"
+          className="card shadow"
           style={{
             width: "30rem",
             height: "20rem",
-            marginTop: "5%",
-            marginLeft: "33%",
             borderRadius: "10px",
           }}
         >
-          <div className="card-body">
+          <div className="card-body text-center">
             <img
-              style={{ marginTop: "20px", marginLeft: "35%" }}
+              style={{ marginBottom: "15px" }}
               src={images}
               alt="images"
-              height="150"
+              height="100"
               className="d-inline-block align-top me-2"
             />
-            <h3
-              style={{ textAlign: "center", marginBottom: "20px" }}
-              className="card-title"
-            >
-              THANK YOU!
-            </h3>
-            <h6
-              style={{ textAlign: "center" }}
-              className="card-subtitle mb-2 text-muted"
-            >
+            <h3 className="card-title mb-3">THANK YOU!</h3>
+            <h6 className="card-subtitle mb-2 text-muted">
               Your stats are now under review for approval
             </h6>
-            <p style={{ textAlign: "center" }} className="card-text">
+            <p className="card-text">
               You will be notified on your email address
             </p>
           </div>
