@@ -1,20 +1,19 @@
 
 import Header from "../../components/user/Header";
 import images from "../../images/images.jpeg";
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export default function Thankyou() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    const submitted = sessionStorage.getItem("formSubmitted");
-    if (!submitted) {
-      navigate("/Thankyou"); // direct URL access block
-    } else {
-      sessionStorage.removeItem("formSubmitted");
+   
+    if (!location.state?.fromForm) {
+      navigate("/", { replace: true }); 
     }
-  }, [navigate]);
+  }, [location, navigate]);
 
   return (
     <div>
@@ -23,7 +22,7 @@ export default function Thankyou() {
         className="container-fluid d-flex justify-content-center align-items-center"
         style={{
           background: "linear-gradient(to right, #e0f2ff, #ffffff)",
-          height: "100vh", // full height for perfect center
+          height: "100vh",
         }}
       >
         <div

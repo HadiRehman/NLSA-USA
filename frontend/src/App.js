@@ -38,7 +38,7 @@ function App() {
       ):(
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/thankyou" element={<Thankyou />} />    
+          <Route path="/Thankyou" element={<Thankyou />} />    
           <Route path="/admin" element={<Login />}></Route>
         </Routes>
       )
