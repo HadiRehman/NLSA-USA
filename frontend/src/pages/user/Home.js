@@ -58,11 +58,11 @@ axios
     },
   })
 .then((res) => {
-    // Agar API ne successfully data save kar liya (200 OK mila)
-    toast.success("Player registered successfully!");
-    sessionStorage.setItem("formSubmitted", "true");
-    navigate("/thankyou");   // ✅ ab hamesha chalega jab tak error na ho
-  })
+  toast.success("Player registered successfully!");
+  sessionStorage.setItem("formSubmitted", "true");
+  navigate("/Thankyou", { state: { fromForm: true } });
+})
+
 .catch((err) => {
     toast.error("Something went wrong!");
     console.error(err);
@@ -272,44 +272,49 @@ axios
             {/* Player Form */}
             <form onSubmit={handleSubmit}>          
               <div className="mb-3">
+                <small className="text">Sport</small>
                 <select
                   className="form-control" name="sportCategory" required
                   style={{ borderRadius: "10px", padding: "12px 20px" }}
                 >
                   <option value="">Select Sport</option>
                   <option value="basketball">Basketball</option>
-                  {/* <option value="football">Football</option>
-                  <option value="hockey">Hockey</option> */}
+                
                 </select>
               </div>
 
               <div className="mb-3">
-                <input type="text" className="form-control" name="playerName" required placeholder="Player Name"
+                 <small className="text">Player Name</small>
+                <input type="text" className="form-control" name="playerName" required placeholder="Enter Player Name"
                   style={{ borderRadius: "10px", padding: "12px 20px" }} />
               </div>
 
               <div className="mb-3">
-                <input type="text" className="form-control" name="eventName" required placeholder="Event Name"
+                <small className="text">Event Name</small>
+                <input type="text" className="form-control" name="eventName" required placeholder="Enter Event Name"
                   style={{ borderRadius: "10px", padding: "12px 20px" }} />
               </div>
 
               <div className="mb-3">
-                <input type="text" className="form-control" name="jerseyNumber" required placeholder="Jersey Number"
+                <small className="text">Jersey Number</small>
+                <input type="text" className="form-control" name="jerseyNumber" required placeholder="Enter Jersey Number"
                   style={{ borderRadius: "10px", padding: "12px 20px" }} />
               </div>
 
               <div className="mb-3">
-                <input type="email" className="form-control" name="email" required placeholder="Email"
+                <small className="text">Email</small>
+                <input type="email" className="form-control" name="email" required placeholder="Enter Email"
                   style={{ borderRadius: "10px", padding: "12px 20px" }} />
               </div>
 
               <div className="mb-3">
-                <input type="date" className="form-control" name="dateOfBirth" required
+                <small className="text">Date of Birth</small>
+                <input type="date" className="form-control" name="dateOfBirth" required 
                   style={{ borderRadius: "10px", padding: "12px 20px" }} />
               </div>
-
               <div className="mb-3">
-                <input type="text" className="form-control" name="cityLocation" required placeholder="City / Location"
+                <small className="text">Adress</small>
+                <input type="text" className="form-control" name="cityLocation" required placeholder="Enter City / Location"
                   style={{ borderRadius: "10px", padding: "12px 20px" }} />
               </div>
 
