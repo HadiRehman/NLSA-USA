@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import App from "../App";
 import Cookies from "js-cookie";
 import { BrowserRouter, Link, useNavigate } from "react-router-dom";
-import Login from "../pages/Login";
 import axios from "axios";
 import logo from "../images/logo.png"
 const BASE_URL = process.env.REACT_APP_BASE_URL;
