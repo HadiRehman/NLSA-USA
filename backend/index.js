@@ -4,8 +4,7 @@ import dotenv from "dotenv";
 import admin from "firebase-admin";
 import bcrypt from "bcryptjs";
 import { readFileSync } from "fs";
-import multer from "multer";
-import { getStorage } from "firebase-admin/storage";
+import nodemailer  from "nodemailer";
 
 dotenv.config();
 const app = express();
@@ -230,6 +229,15 @@ app.delete("/deleteuser/:Id", authenticateApiKey, async (req, res) => {
 });
 
 // stats api
+// ✅ Google SMTP Transporter
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.GMAIL_USER, // your Gmail address
+    pass: process.env.GMAIL_PASS, // app password (not your actual Gmail password!)
+  },
+});
+
 // ✅ Add or Update Player
 app.post("/addplayer", authenticateApiKey, async (req, res) => {
   const {
@@ -237,11 +245,14 @@ app.post("/addplayer", authenticateApiKey, async (req, res) => {
     SportCategory,
     PlayerName,
     EventName,
-    DateOfBirth,
+    EventDate,
     CityLocation,
     Email,
     JerseyNumber,
-    // optional stats
+    documentFile,
+    videoFile,
+    Status, // Pending | Approved | Rejected
+    // optional stats (may come as numbers or strings)
     AtBats,
     Hits,
     Runs,
@@ -259,13 +270,12 @@ app.post("/addplayer", authenticateApiKey, async (req, res) => {
     ERA,
   } = req.body;
 
-  // ✅ Validation for create
   if (
     !Id &&
     (!SportCategory ||
       !PlayerName ||
       !EventName ||
-      !DateOfBirth ||
+      !EventDate ||
       !CityLocation ||
       !Email ||
       !JerseyNumber)
@@ -285,16 +295,59 @@ app.post("/addplayer", authenticateApiKey, async (req, res) => {
         return res.status(404).json({ message: "Player not found" });
       }
 
+      const existingData = playerDoc.data() || {};
+      const existingStats = existingData.stats || {};
+
+      // Helpers
+      const isMissing = (v) =>
+        v === undefined ||
+        v === null ||
+        (typeof v === "string" && v.trim() === "");
+
+      const pickVal = (incoming, fallback) =>
+        incoming !== undefined ? incoming : fallback;
+
+      // 🔒 If moving to Approved, ensure required stats are present (incoming OR existing)
+      if (Status === "Approved" && existingData.Status !== "Approved") {
+        const required = {
+          AtBats: pickVal(AtBats, existingStats.AtBats),
+          Hits: pickVal(Hits, existingStats.Hits),
+          Runs: pickVal(Runs, existingStats.Runs),
+          RBI: pickVal(RBI, existingStats.RBI),
+          HR: pickVal(HR, existingStats.HR),
+          SB: pickVal(SB, existingStats.SB),
+          BB: pickVal(BB, existingStats.BB),
+          K: pickVal(K, existingStats.K),
+          AVG: pickVal(AVG, existingStats.AVG),
+        };
+
+        const missingFields = Object.entries(required)
+          .filter(([, val]) => isMissing(val))
+          .map(([key]) => key);
+
+        if (missingFields.length) {
+          return res.status(400).json({
+            message:
+              "Stats are required when approving a player.",
+            missing: missingFields, // helpful for the client
+          });
+        }
+      }
+
+      // Build updates
       const updates = {};
       if (SportCategory) updates.SportCategory = SportCategory;
       if (PlayerName) updates.PlayerName = PlayerName;
       if (EventName) updates.EventName = EventName;
-      if (DateOfBirth) updates.DateOfBirth = DateOfBirth;
+      if (EventDate) updates.EventDate = EventDate;
       if (CityLocation) updates.CityLocation = CityLocation;
       if (Email) updates.Email = Email;
       if (JerseyNumber) updates.JerseyNumber = JerseyNumber;
+      if (documentFile) updates.documentFile = documentFile;
+      if (videoFile) updates.videoFile = videoFile;
+      if (Status) updates.Status = Status;
 
-      // ✅ merge stats
+      // Merge stats (only keys provided in request)
       const statsUpdates = {};
       if (AtBats !== undefined) statsUpdates.AtBats = AtBats;
       if (Hits !== undefined) statsUpdates.Hits = Hits;
@@ -318,6 +371,35 @@ app.post("/addplayer", authenticateApiKey, async (req, res) => {
 
       await playerRef.set(updates, { merge: true });
 
+      // 📧 Email on status change to Approved/Rejected
+      if (
+        Status &&
+        (Status === "Approved" || Status === "Rejected") &&
+        existingData.Status !== Status
+      ) {
+        const recipientEmail = existingData.Email || Email;
+        if (recipientEmail) {
+          const subject =
+            Status === "Approved"
+              ? `Your Stats for ${existingData.SportCategory || SportCategory} has been Approved`
+              : "Your Stats has been Rejected";
+
+          const message =
+            Status === "Approved"
+              ? `Hello ${existingData.PlayerName || PlayerName},\n\nYour player registration has been approved. You can now participate in the event.\n\nThanks,\nTeam`
+              : `Hello ${existingData.PlayerName || PlayerName},\n\nUnfortunately, your player registration has been rejected.\n\nThanks,\nTeam`;
+
+          await transporter.sendMail({
+            from: `"Sports App" <${process.env.GMAIL_USER}>`,
+            to: recipientEmail,
+            subject,
+            text: message,
+          });
+
+          console.log(`📧 Email sent to ${recipientEmail} about status: ${Status}`);
+        }
+      }
+
       return res.status(200).json({ message: "Player updated successfully" });
     }
 
@@ -326,10 +408,13 @@ app.post("/addplayer", authenticateApiKey, async (req, res) => {
       SportCategory,
       PlayerName,
       EventName,
-      DateOfBirth,
+      EventDate,
       CityLocation,
       Email,
       JerseyNumber,
+      documentFile: documentFile || null,
+      videoFile: videoFile || null,
+      Status: "Pending",
       stats: {
         AtBats: AtBats || null,
         Hits: Hits || null,
@@ -351,15 +436,13 @@ app.post("/addplayer", authenticateApiKey, async (req, res) => {
     };
 
     const playerRef = await db.collection("players").add(newPlayer);
-
-    return res
-      .status(200)
-      .json({ message: "Player added successfully", Id: playerRef.id });
+    return res.status(200).json({ message: "Player added successfully", Id: playerRef.id });
   } catch (error) {
     console.error("🔥 Error adding/updating player:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 });
+
 
 // ✅ Fetch All Players
 app.get("/getplayers", authenticateApiKey, async (req, res) => {
