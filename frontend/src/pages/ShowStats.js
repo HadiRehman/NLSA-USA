@@ -91,7 +91,7 @@ export default function ShowStats() {
             <td><strong>Event Name:</strong> {player.EventName}</td>
           </tr>
           <tr>
-            <td><strong>Date of Birth:</strong> {player.DateOfBirth}</td>
+            <td><strong>Event Date:</strong> {player.EventDate}</td>
             <td><strong>City/Location:</strong> {player.CityLocation}</td>
           </tr>
           <tr>
