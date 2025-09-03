@@ -4,7 +4,8 @@ import dotenv from "dotenv";
 import admin from "firebase-admin";
 import bcrypt from "bcryptjs";
 import { readFileSync } from "fs";
-import nodemailer  from "nodemailer";
+import PDFDocument from "pdfkit";
+import nodemailer from "nodemailer";
 
 dotenv.config();
 const app = express();
@@ -249,10 +250,10 @@ app.post("/addplayer", authenticateApiKey, async (req, res) => {
     CityLocation,
     Email,
     JerseyNumber,
-    documentFile,
-    videoFile,
+    DocumentFile,
+    VideoFile,
     Status, // Pending | Approved | Rejected
-    // optional stats (may come as numbers or strings)
+    // optional stats
     AtBats,
     Hits,
     Runs,
@@ -270,44 +271,23 @@ app.post("/addplayer", authenticateApiKey, async (req, res) => {
     ERA,
   } = req.body;
 
-  if (
-    !Id &&
-    (!SportCategory ||
-      !PlayerName ||
-      !EventName ||
-      !EventDate ||
-      !CityLocation ||
-      !Email ||
-      !JerseyNumber)
-  ) {
-    return res
-      .status(400)
-      .json({ message: "All player info fields are required for new player!" });
-  }
-
   try {
-    // ✅ Case 1: Update existing player
+    // === UPDATE CASE ===
     if (Id) {
       const playerRef = db.collection("players").doc(Id);
       const playerDoc = await playerRef.get();
-
-      if (!playerDoc.exists) {
-        return res.status(404).json({ message: "Player not found" });
-      }
+      if (!playerDoc.exists) return res.status(404).json({ message: "Player not found" });
 
       const existingData = playerDoc.data() || {};
       const existingStats = existingData.stats || {};
 
-      // Helpers
       const isMissing = (v) =>
-        v === undefined ||
-        v === null ||
-        (typeof v === "string" && v.trim() === "");
+        v === undefined || v === null || (typeof v === "string" && v.trim() === "");
 
       const pickVal = (incoming, fallback) =>
         incoming !== undefined ? incoming : fallback;
 
-      // 🔒 If moving to Approved, ensure required stats are present (incoming OR existing)
+      // 🔒 Require stats if moving to Approved
       if (Status === "Approved" && existingData.Status !== "Approved") {
         const required = {
           AtBats: pickVal(AtBats, existingStats.AtBats),
@@ -327,14 +307,13 @@ app.post("/addplayer", authenticateApiKey, async (req, res) => {
 
         if (missingFields.length) {
           return res.status(400).json({
-            message:
-              "Stats are required when approving a player.",
-            missing: missingFields, // helpful for the client
+            message: "Stats are required when approving a player.",
+            missing: missingFields,
           });
         }
       }
 
-      // Build updates
+      // Build update object
       const updates = {};
       if (SportCategory) updates.SportCategory = SportCategory;
       if (PlayerName) updates.PlayerName = PlayerName;
@@ -343,11 +322,11 @@ app.post("/addplayer", authenticateApiKey, async (req, res) => {
       if (CityLocation) updates.CityLocation = CityLocation;
       if (Email) updates.Email = Email;
       if (JerseyNumber) updates.JerseyNumber = JerseyNumber;
-      if (documentFile) updates.documentFile = documentFile;
-      if (videoFile) updates.videoFile = videoFile;
+      if (DocumentFile) updates.DocumentFile = DocumentFile;
+      if (VideoFile) updates.VideoFile = VideoFile;
       if (Status) updates.Status = Status;
 
-      // Merge stats (only keys provided in request)
+      // Merge stats
       const statsUpdates = {};
       if (AtBats !== undefined) statsUpdates.AtBats = AtBats;
       if (Hits !== undefined) statsUpdates.Hits = Hits;
@@ -366,12 +345,12 @@ app.post("/addplayer", authenticateApiKey, async (req, res) => {
       if (ERA !== undefined) statsUpdates.ERA = ERA;
 
       if (Object.keys(statsUpdates).length > 0) {
-        updates["stats"] = statsUpdates;
+        updates["stats"] = { ...existingStats, ...statsUpdates };
       }
 
       await playerRef.set(updates, { merge: true });
 
-      // 📧 Email on status change to Approved/Rejected
+      // === EMAIL ON STATUS CHANGE ===
       if (
         Status &&
         (Status === "Approved" || Status === "Rejected") &&
@@ -379,31 +358,217 @@ app.post("/addplayer", authenticateApiKey, async (req, res) => {
       ) {
         const recipientEmail = existingData.Email || Email;
         if (recipientEmail) {
-          const subject =
-            Status === "Approved"
-              ? `Your Stats for ${existingData.SportCategory || SportCategory} has been Approved`
-              : "Your Stats has been Rejected";
+          if (Status === "Approved") {
+            // Generate certificate PDF
+            const doc = new PDFDocument({ size: "A4", margin: 50 });
+            let buffers = [];
+            doc.on("data", buffers.push.bind(buffers));
+            doc.on("end", async () => {
+              const pdfBuffer = Buffer.concat(buffers);
 
-          const message =
-            Status === "Approved"
-              ? `Hello ${existingData.PlayerName || PlayerName},\n\nYour player registration has been approved. You can now participate in the event.\n\nThanks,\nTeam`
-              : `Hello ${existingData.PlayerName || PlayerName},\n\nUnfortunately, your player registration has been rejected.\n\nThanks,\nTeam`;
+              await transporter.sendMail({
+                from: `"Sports App" <${process.env.GMAIL_USER}>`,
+                to: recipientEmail,
+                subject: `Your Certificate - ${
+                  existingData.SportCategory || SportCategory
+                }`,
+                text: `Hello ${
+                  existingData.PlayerName || PlayerName
+                },\n\nCongratulations! Please find your attached certificate.\n\nThanks,\nTeam`,
+                attachments: [
+                  {
+                    filename: `Certificate-${Id}.pdf`,
+                    content: pdfBuffer,
+                  },
+                ],
+              });
 
-          await transporter.sendMail({
-            from: `"Sports App" <${process.env.GMAIL_USER}>`,
-            to: recipientEmail,
-            subject,
-            text: message,
-          });
+              console.log(`📧 Certificate emailed to ${recipientEmail}`);
+            });
 
-          console.log(`📧 Email sent to ${recipientEmail} about status: ${Status}`);
+            // === Certificate UI Layout ===
+            // Border
+            doc.rect(20, 20, 555, 800).strokeColor("#1a73e8").lineWidth(4).stroke();
+
+            // Header / Title
+            doc.fontSize(26)
+              .fillColor("#1a73e8")
+              .font("Helvetica-Bold")
+              .text("NLSA USA – Certificate of Achievement", {
+                align: "center",
+                underline: true,
+              });
+            doc.moveDown(1);
+
+            // Sub-title
+            doc.fontSize(16)
+              .fillColor("black")
+              .font("Helvetica")
+              .text("This certificate is proudly presented to", {
+                align: "center",
+              });
+            doc.moveDown(1);
+
+            // Player Name
+            doc.fontSize(25)
+              .fillColor("black")
+              .font("Helvetica-Bold")
+              .text(`${PlayerName || existingData.PlayerName}`, {
+                align: "center",
+              });
+            doc.moveDown(0.5);
+
+            // Challenge / Event
+            doc.fontSize(14)
+              .fillColor("black")
+              .font("Helvetica")
+              .text(
+                `For outstanding performance in the ${
+                  SportCategory || existingData.SportCategory
+                } challenge`,
+                { align: "center" }
+              );
+            doc.moveDown(1);
+
+            // Event Info Section
+            doc.fontSize(14)
+              .fillColor("#333")
+              .font("Helvetica")
+              .text(`Event: ${EventName || existingData.EventName}`, {
+                align: "center",
+              });
+            doc.text(`Date: ${EventDate || existingData.EventDate}`, {
+              align: "center",
+            });
+            doc.text(
+              `Jersey Number: ${JerseyNumber || existingData.JerseyNumber}`,
+              { align: "center" }
+            );
+            doc.moveDown(0.5);
+
+            // === Highlight Stats Section ===
+            doc.moveDown(1)
+              .fontSize(16)
+              .fillColor("#1a73e8")
+              .font("Helvetica-Bold")
+              .text("Highlight Stats", { align: "center" });
+            doc.moveDown(1);
+
+            // Define stats in key-value pairs
+            const stats = [
+              { label: "At Bats (AB)", value: AtBats || existingStats.AtBats || "N/A" },
+              { label: "Hits (H)", value: Hits || existingStats.Hits || "N/A" },
+              { label: "Runs (R)", value: Runs || existingStats.Runs || "N/A" },
+              { label: "RBI", value: RBI || existingStats.RBI || "N/A" },
+              { label: "HR", value: HR || existingStats.HR || "N/A" },
+              { label: "SB", value: SB || existingStats.SB || "N/A" },
+              { label: "BB", value: BB || existingStats.BB || "N/A" },
+              { label: "K", value: K || existingStats.K || "N/A" },
+              { label: "AVG", value: AVG || existingStats.AVG || "N/A" },
+              { label: "Errors", value: Errors || existingStats.Errors || "N/A" },
+              { label: "Assists", value: Assists || existingStats.Assists || "N/A" },
+              { label: "Putouts", value: Putouts || existingStats.Putouts || "N/A" },
+              {
+                label: "Pitching Innings",
+                value: PitchingInnings || existingStats.PitchingInnings || "N/A",
+              },
+              {
+                label: "Pitching Strikeouts",
+                value: PitchingStrikeouts || existingStats.PitchingStrikeouts || "N/A",
+              },
+              { label: "ERA", value: ERA || existingStats.ERA || "N/A" },
+            ];
+
+            // Table-like display
+            let startX = 100;
+            let startY = doc.y;
+            let rowHeight = 22;
+            let col1Width = 200;
+            let col2Width = 150;
+
+            stats.forEach((stat, i) => {
+              // Alternate row background
+              if (i % 2 === 0) {
+                doc.rect(startX, startY + i * rowHeight, col1Width + col2Width, rowHeight)
+                  .fillColor("#f5f5f5")
+                  .fill();
+              }
+
+              // Write stat category
+              doc.fillColor("black")
+                .font("Helvetica-Bold")
+                .fontSize(12)
+                .text(stat.label, startX + 5, startY + i * rowHeight + 5, {
+                  width: col1Width,
+                });
+
+              // Write stat value
+              doc.font("Helvetica")
+                .fillColor("#d32f2f")
+                .fontSize(12)
+                .text(stat.value, startX + col1Width + 10, startY + i * rowHeight + 5, {
+                  width: col2Width,
+                });
+            });
+
+            doc.moveDown(3);
+
+            // === CERTIFICATE ID (LEFT) + SIGNATURE (RIGHT) ===
+            const pageWidth = doc.page.width;
+            const margin = 50;
+            const yPos = doc.y; // current vertical position
+
+                        // Certificate ID (left)
+            doc
+              .fontSize(12)
+              .fillColor("#555")
+              .text(`Certificate ID: CERT-${new Date().getFullYear()}-${Id}`, margin, yPos+20, {
+                align: "left",
+              });
+
+            // Signature block (right)
+            doc
+              .fontSize(12)
+              .fillColor("#000")
+              .font("Helvetica-Bold")
+              .text("Admin", pageWidth / 2, yPos, { align: "right" })
+              .font("Helvetica")
+              .text("__________________________", pageWidth / 2, doc.y, { align: "right" })
+              .font("Helvetica-Bold")
+              .text("Authorized League Official", pageWidth / 2, doc.y, { align: "right" })
+              .font("Helvetica")
+              .text("NLSA USA", pageWidth / 2, doc.y, { align: "right" });
+            // === FOOTER (CENTER) ===
+            // === FOOTER (BOTTOM CENTER) ===
+            const footerY = doc.page.height - 40; // 40px above bottom edge
+              doc
+              .fontSize(10)
+              .fillColor("#888")
+              .text("© NLSA USA | www.nlsausa.com", 230, footerY, {
+                align: "center",
+                width: "100%",
+              });
+              doc.moveDown(1);
+
+            doc.end();
+          } else {
+            // Send rejection email
+            await transporter.sendMail({
+              from: `"Sports App" <${process.env.GMAIL_USER}>`,
+              to: recipientEmail,
+              subject: "Your Stats have been Rejected",
+              text: `Hello ${
+                existingData.PlayerName || PlayerName
+              },\n\nUnfortunately, your player registration has been rejected.\n\nThanks,\nTeam`,
+            });
+          }
         }
       }
 
       return res.status(200).json({ message: "Player updated successfully" });
     }
 
-    // ✅ Case 2: Create new player
+    // === CREATE CASE ===
     const newPlayer = {
       SportCategory,
       PlayerName,
@@ -412,8 +577,8 @@ app.post("/addplayer", authenticateApiKey, async (req, res) => {
       CityLocation,
       Email,
       JerseyNumber,
-      documentFile: documentFile || null,
-      videoFile: videoFile || null,
+      DocumentFile: DocumentFile || null,
+      VideoFile: VideoFile || null,
       Status: "Pending",
       stats: {
         AtBats: AtBats || null,
@@ -437,12 +602,12 @@ app.post("/addplayer", authenticateApiKey, async (req, res) => {
 
     const playerRef = await db.collection("players").add(newPlayer);
     return res.status(200).json({ message: "Player added successfully", Id: playerRef.id });
+
   } catch (error) {
     console.error("🔥 Error adding/updating player:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 });
-
 
 // ✅ Fetch All Players
 app.get("/getplayers", authenticateApiKey, async (req, res) => {
