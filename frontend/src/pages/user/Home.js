@@ -1,7 +1,5 @@
 import Header from "../../components/user/Header";
 import React, { useState } from "react";   
-import "bootstrap/dist/css/bootstrap.min.css";
-import "bootstrap/dist/js/bootstrap.bundle.min";
 import baketball from "../../images/baketball.jpg"; 
 import football from "../../images/football.jpg"; 
 import hockey from "../../images/hockey.jpg"; 
