@@ -118,7 +118,7 @@ axios
                 }}
               >
                 <h2 style={{ fontSize: "48px", marginBottom: "20px" }}>
-                  Welcome to Basketball World
+                  Welcome to Baseball World
                 </h2>
                 <button
                   className="btn"
@@ -278,8 +278,7 @@ axios
                   style={{ borderRadius: "10px", padding: "12px 20px" }}
                 >
                   <option value="">Select Sport</option>
-                  <option value="basketball">Basketball</option>
-                
+                  <option value="baseball">Baseball</option>
                 </select>
               </div>
 
