@@ -130,7 +130,7 @@ export default function ShowPlayers() {
             <th scope="col">Player Name</th>
             <th scope="col">Sports Category</th>
             <th scope="col">Event Name</th>
-            <th scope="col">Date Of Birth</th>
+            <th scope="col">Event Date</th>
             <th scope="col">City / Location</th>
             <th scope="col">Email</th>
             <th scope="col">Jersey Number</th>
