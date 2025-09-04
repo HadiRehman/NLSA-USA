@@ -367,11 +367,11 @@ app.post("/addplayer", authenticateApiKey, async (req, res) => {
               const pdfBuffer = Buffer.concat(buffers);
 
               await transporter.sendMail({
-                from: `"Sports App" <${process.env.GMAIL_USER}>`,
+                from: `"NLSA USA" <${process.env.GMAIL_USER}>`,
                 to: recipientEmail,
                 subject: `Your Certificate - ${
                   existingData.SportCategory || SportCategory
-                }`,
+                } Challenge`,
                 text: `Hello ${
                   existingData.PlayerName || PlayerName
                 },\n\nCongratulations! Please find your attached certificate.\n\nThanks,\nTeam`,
@@ -390,15 +390,24 @@ app.post("/addplayer", authenticateApiKey, async (req, res) => {
             // Border
             doc.rect(20, 20, 555, 800).strokeColor("#1a73e8").lineWidth(4).stroke();
 
-            // Header / Title
-            doc.fontSize(26)
-              .fillColor("#1a73e8")
-              .font("Helvetica-Bold")
-              .text("NLSA USA – Certificate of Achievement", {
-                align: "center",
-                underline: true,
-              });
-            doc.moveDown(1);
+            // === Logo + Header ===
+            try {
+              // Add logo (left side)
+              doc.image("../frontend/src/images/logo.png", 40, 40, { width: 70 }); // x=50, y=40, width=80px
+              
+              // Title (center)
+              doc.fontSize(22)
+                .fillColor("#1a73e8")
+                .font("Helvetica-Bold")
+                .text("NLSA USA – Certificate of Achievement", 0, 55, {
+                  align: "right",
+                  underline: true,
+                });
+
+              doc.moveDown(1);
+            } catch (e) {
+              console.error("Logo not found or failed to load:", e);
+            }
 
             // Sub-title
             doc.fontSize(16)
@@ -554,7 +563,7 @@ app.post("/addplayer", authenticateApiKey, async (req, res) => {
           } else {
             // Send rejection email
             await transporter.sendMail({
-              from: `"Sports App" <${process.env.GMAIL_USER}>`,
+              from: `"NLSA USA" <${process.env.GMAIL_USER}>`,
               to: recipientEmail,
               subject: "Your Stats have been Rejected",
               text: `Hello ${
@@ -698,6 +707,404 @@ app.delete("/deleteplayer/:Id", authenticateApiKey, async (req, res) => {
   } catch (error) {
     console.error("🔥 Delete error:", error);
     return res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+
+// 📄 View Certificate (Generate PDF on demand)
+app.get("/certificate/:playerId", async (req, res) => {
+  const { playerId } = req.params;
+
+  try {
+    const playerRef = db.collection("players").doc(playerId);
+    const playerDoc = await playerRef.get();
+
+    if (!playerDoc.exists) return res.status(404).json({ message: "Player not found" });
+
+    const data = playerDoc.data();
+    if (data.Status !== "Approved") {
+      return res.status(400).json({ message: "Only Approved players have certificates." });
+    }
+
+    const recipientEmail = data.Email;
+    if (!recipientEmail) return res.status(400).json({ message: "No email found for player." });
+
+    const existingStats = data.stats || {};
+
+    // Generate PDF
+    const doc = new PDFDocument({ size: "A4", margin: 50 });
+    let buffers = [];
+    doc.on("data", buffers.push.bind(buffers));
+    doc.on("end", () => {
+      const pdfBuffer = Buffer.concat(buffers);
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `inline; filename=Certificate-${playerId}.pdf`
+      );
+      res.send(pdfBuffer);
+    });
+
+    // === Certificate UI Layout ===
+    // Border
+    doc.rect(20, 20, 555, 800).strokeColor("#1a73e8").lineWidth(4).stroke();
+
+    // === Logo + Header ===
+    try {
+      // Add logo (left side)
+      doc.image("../frontend/src/images/logo.png", 40, 40, { width: 70 }); // x=50, y=40, width=80px
+      
+      // Title (center)
+      doc.fontSize(22)
+        .fillColor("#1a73e8")
+        .font("Helvetica-Bold")
+        .text("NLSA USA – Certificate of Achievement", 0, 55, {
+          align: "right",
+          underline: true,
+        });
+
+      doc.moveDown(1);
+    } catch (e) {
+      console.error("Logo not found or failed to load:", e);
+    }
+
+    // Sub-title
+    doc.fontSize(16)
+      .fillColor("black")
+      .font("Helvetica")
+      .text("This certificate is proudly presented to", {
+        align: "center",
+      });
+    doc.moveDown(1);
+
+    // Player Name
+    doc.fontSize(25)
+      .fillColor("black")
+      .font("Helvetica-Bold")
+      .text(`${data.PlayerName || "Athlete"}`, {
+        align: "center",
+      });
+    doc.moveDown(0.5);
+
+    // Challenge / Event
+    doc.fontSize(14)
+      .fillColor("black")
+      .font("Helvetica")
+      .text(
+        `For outstanding performance in the ${data.SportCategory || "N/A"} challenge`,
+        { align: "center" }
+      );
+    doc.moveDown(1);
+
+    // Event Info Section
+    doc.fontSize(14)
+      .fillColor("#333")
+      .font("Helvetica")
+      .text(`Event: ${data.EventName || "N/A"}`, { align: "center" });
+    doc.text(`Date: ${data.EventDate || "N/A"}`, { align: "center" });
+    doc.text(`Jersey Number: ${data.JerseyNumber || "N/A"}`, { align: "center" });
+    doc.moveDown(0.5);
+
+    // === Highlight Stats Section ===
+    doc.moveDown(1)
+      .fontSize(16)
+      .fillColor("#1a73e8")
+      .font("Helvetica-Bold")
+      .text("Highlight Stats", { align: "center" });
+    doc.moveDown(1);
+
+    // Define stats in key-value pairs
+    const stats = [
+      { label: "At Bats (AB)", value: existingStats.AtBats || "N/A" },
+      { label: "Hits (H)", value: existingStats.Hits || "N/A" },
+      { label: "Runs (R)", value: existingStats.Runs || "N/A" },
+      { label: "RBI", value: existingStats.RBI || "N/A" },
+      { label: "HR", value: existingStats.HR || "N/A" },
+      { label: "SB", value: existingStats.SB || "N/A" },
+      { label: "BB", value: existingStats.BB || "N/A" },
+      { label: "K", value: existingStats.K || "N/A" },
+      { label: "AVG", value: existingStats.AVG || "N/A" },
+      { label: "Errors", value: existingStats.Errors || "N/A" },
+      { label: "Assists", value: existingStats.Assists || "N/A" },
+      { label: "Putouts", value: existingStats.Putouts || "N/A" },
+      { label: "Pitching Innings", value: existingStats.PitchingInnings || "N/A" },
+      { label: "Pitching Strikeouts", value: existingStats.PitchingStrikeouts || "N/A" },
+      { label: "ERA", value: existingStats.ERA || "N/A" },
+    ];
+
+    // Table-like display
+    let startX = 100;
+    let startY = doc.y;
+    let rowHeight = 22;
+    let col1Width = 200;
+    let col2Width = 150;
+
+    stats.forEach((stat, i) => {
+      if (i % 2 === 0) {
+        doc.save(); // save current state
+        doc.rect(startX, startY + i * rowHeight, col1Width + col2Width, rowHeight)
+          .fillColor("#f5f5f5")
+          .fill();
+        doc.restore(); // restore to avoid affecting text color
+      }
+
+      doc.fillColor("black")
+        .font("Helvetica-Bold")
+        .fontSize(12)
+        .text(stat.label, startX + 5, startY + i * rowHeight + 5, {
+          width: col1Width,
+        });
+
+      doc.font("Helvetica")
+        .fillColor("#d32f2f")
+        .fontSize(12)
+        .text(stat.value, startX + col1Width + 10, startY + i * rowHeight + 5, {
+          width: col2Width,
+        });
+    });
+
+    doc.moveDown(3);
+
+    // === CERTIFICATE ID (LEFT) + SIGNATURE (RIGHT) ===
+    const pageWidth = doc.page.width;
+    const margin = 50;
+    const yPos = doc.y;
+
+    doc.fontSize(12)
+      .fillColor("#555")
+      .text(`Certificate ID: CERT-${new Date().getFullYear()}-${data.Id || playerId}`, margin, yPos + 20, {
+        align: "left",
+      });
+
+    doc.fontSize(12)
+      .fillColor("#000")
+      .font("Helvetica-Bold")
+      .text("Admin", pageWidth / 2, yPos, { align: "right" })
+      .font("Helvetica")
+      .text("__________________________", pageWidth / 2, doc.y, { align: "right" })
+      .font("Helvetica-Bold")
+      .text("Authorized League Official", pageWidth / 2, doc.y, { align: "right" })
+      .font("Helvetica")
+      .text("NLSA USA", pageWidth / 2, doc.y, { align: "right" });
+
+    // === FOOTER (BOTTOM CENTER) ===
+    const footerY = doc.page.height - 40;
+    doc.fontSize(10)
+      .fillColor("#888")
+      .text("© NLSA USA | www.nlsausa.com", 0, footerY, {
+        align: "center",
+        width: pageWidth,
+      });
+
+    doc.end();
+
+  } catch (err) {
+    console.error("🔥 Error generating certificate:", err);
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+});
+
+// 📧 Resend Certificate
+app.post("/send-certificate", authenticateApiKey, async (req, res) => {
+  const { playerId } = req.body;
+
+  try {
+    const playerRef = db.collection("players").doc(playerId);
+    const playerDoc = await playerRef.get();
+
+    if (!playerDoc.exists) return res.status(404).json({ message: "Player not found" });
+
+    const data = playerDoc.data();
+    if (data.Status !== "Approved") {
+      return res.status(400).json({ message: "Only Approved players have certificates." });
+    }
+
+    const recipientEmail = data.Email;
+    if (!recipientEmail) return res.status(400).json({ message: "No email found for player." });
+
+    const existingStats = data.stats || {};
+
+    // Generate certificate PDF
+    const doc = new PDFDocument({ size: "A4", margin: 50 });
+    let buffers = [];
+    doc.on("data", buffers.push.bind(buffers));
+    doc.on("end", async () => {
+      const pdfBuffer = Buffer.concat(buffers);
+
+      await transporter.sendMail({
+        from: `"NLSA USA" <${process.env.GMAIL_USER}>`,
+        to: recipientEmail,
+        subject: `Your Certificate - ${data.SportCategory || "N/A"} Challenge`,
+        text: `Hello ${data.PlayerName || "Athlete"},\n\nCongratulations! Please find your attached certificate.\n\nThanks,\nTeam`,
+        attachments: [
+          {
+            filename: `Certificate-${data.Id || playerId}.pdf`,
+            content: pdfBuffer,
+          },
+        ],
+      });
+
+      console.log(`📧 Certificate emailed to ${recipientEmail}`);
+
+      res.json({ success: true, message: `Certificate sent to ${recipientEmail}` });
+    });
+
+    // === Certificate UI Layout ===
+    // Border
+    doc.rect(20, 20, 555, 800).strokeColor("#1a73e8").lineWidth(4).stroke();
+
+    // === Logo + Header ===
+    try {
+      // Add logo (left side)
+      doc.image("../frontend/src/images/logo.png", 40, 40, { width: 70 }); // x=50, y=40, width=80px
+      
+      // Title (center)
+      doc.fontSize(22)
+        .fillColor("#1a73e8")
+        .font("Helvetica-Bold")
+        .text("NLSA USA – Certificate of Achievement", 0, 55, {
+          align: "right",
+          underline: true,
+        });
+
+      doc.moveDown(1);
+    } catch (e) {
+      console.error("Logo not found or failed to load:", e);
+    }
+
+    // Sub-title
+    doc.fontSize(16)
+      .fillColor("black")
+      .font("Helvetica")
+      .text("This certificate is proudly presented to", {
+        align: "center",
+      });
+    doc.moveDown(1);
+
+    // Player Name
+    doc.fontSize(25)
+      .fillColor("black")
+      .font("Helvetica-Bold")
+      .text(`${data.PlayerName || "Athlete"}`, {
+        align: "center",
+      });
+    doc.moveDown(0.5);
+
+    // Challenge / Event
+    doc.fontSize(14)
+      .fillColor("black")
+      .font("Helvetica")
+      .text(
+        `For outstanding performance in the ${data.SportCategory || "N/A"} challenge`,
+        { align: "center" }
+      );
+    doc.moveDown(1);
+
+    // Event Info Section
+    doc.fontSize(14)
+      .fillColor("#333")
+      .font("Helvetica")
+      .text(`Event: ${data.EventName || "N/A"}`, { align: "center" });
+    doc.text(`Date: ${data.EventDate || "N/A"}`, { align: "center" });
+    doc.text(`Jersey Number: ${data.JerseyNumber || "N/A"}`, { align: "center" });
+    doc.moveDown(0.5);
+
+    // === Highlight Stats Section ===
+    doc.moveDown(1)
+      .fontSize(16)
+      .fillColor("#1a73e8")
+      .font("Helvetica-Bold")
+      .text("Highlight Stats", { align: "center" });
+    doc.moveDown(1);
+
+    // Define stats in key-value pairs
+    const stats = [
+      { label: "At Bats (AB)", value: existingStats.AtBats || "N/A" },
+      { label: "Hits (H)", value: existingStats.Hits || "N/A" },
+      { label: "Runs (R)", value: existingStats.Runs || "N/A" },
+      { label: "RBI", value: existingStats.RBI || "N/A" },
+      { label: "HR", value: existingStats.HR || "N/A" },
+      { label: "SB", value: existingStats.SB || "N/A" },
+      { label: "BB", value: existingStats.BB || "N/A" },
+      { label: "K", value: existingStats.K || "N/A" },
+      { label: "AVG", value: existingStats.AVG || "N/A" },
+      { label: "Errors", value: existingStats.Errors || "N/A" },
+      { label: "Assists", value: existingStats.Assists || "N/A" },
+      { label: "Putouts", value: existingStats.Putouts || "N/A" },
+      { label: "Pitching Innings", value: existingStats.PitchingInnings || "N/A" },
+      { label: "Pitching Strikeouts", value: existingStats.PitchingStrikeouts || "N/A" },
+      { label: "ERA", value: existingStats.ERA || "N/A" },
+    ];
+
+    // Table-like display
+    let startX = 100;
+    let startY = doc.y;
+    let rowHeight = 22;
+    let col1Width = 200;
+    let col2Width = 150;
+
+    stats.forEach((stat, i) => {
+      if (i % 2 === 0) {
+        doc.rect(startX, startY + i * rowHeight, col1Width + col2Width, rowHeight)
+          .fillColor("#f5f5f5")
+          .fill();
+      }
+
+      doc.fillColor("black")
+        .font("Helvetica-Bold")
+        .fontSize(12)
+        .text(stat.label, startX + 5, startY + i * rowHeight + 5, {
+          width: col1Width,
+        });
+
+      doc.font("Helvetica")
+        .fillColor("#d32f2f")
+        .fontSize(12)
+        .text(stat.value, startX + col1Width + 10, startY + i * rowHeight + 5, {
+          width: col2Width,
+        });
+    });
+
+    doc.moveDown(3);
+
+    // === CERTIFICATE ID (LEFT) + SIGNATURE (RIGHT) ===
+    const pageWidth = doc.page.width;
+    const margin = 50;
+    const yPos = doc.y;
+
+    doc.fontSize(12)
+      .fillColor("#555")
+      .text(`Certificate ID: CERT-${new Date().getFullYear()}-${data.Id || playerId}`, margin, yPos + 20, {
+        align: "left",
+      });
+
+    doc.fontSize(12)
+      .fillColor("#000")
+      .font("Helvetica-Bold")
+      .text("Admin", pageWidth / 2, yPos, { align: "right" })
+      .font("Helvetica")
+      .text("__________________________", pageWidth / 2, doc.y, { align: "right" })
+      .font("Helvetica-Bold")
+      .text("Authorized League Official", pageWidth / 2, doc.y, { align: "right" })
+      .font("Helvetica")
+      .text("NLSA USA", pageWidth / 2, doc.y, { align: "right" });
+
+    // === FOOTER (BOTTOM CENTER) ===
+    const footerY = doc.page.height - 40;
+    doc.fontSize(10)
+      .fillColor("#888")
+      .text("© NLSA USA | www.nlsausa.com", 230, footerY, {
+        align: "center",
+        width: "100%",
+      });
+
+    doc.end();
+
+  } catch (err) {
+    console.error("🔥 Error sending certificate:", err);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 });
 
