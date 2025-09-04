@@ -12,6 +12,7 @@ import ShowStats from "./pages/ShowStats";
 import DeletePlayer from "./pages/DeletePlayer";
 import Home from "./pages/user/Home";
 import Thankyou from "./pages/user/Thankyou";
+import Certificate from "./pages/Certificates";
 
 function App() {
   const getUsername = Cookies.get("username");
@@ -30,6 +31,7 @@ function App() {
               <Route path="/adduser" element={<AddUser />}></Route>
               <Route path="/deleteuser/:id" element={<DeleteUser />}></Route>
               <Route path="/players" element={<ShowPlayers />}></Route>
+              <Route path="/certificates" element={<Certificate />}></Route>
               <Route path="/stats/:id" element={<ShowStats />}></Route>
               <Route path="/deleteplayer/:id" element={<DeletePlayer />}></Route>
             </>
